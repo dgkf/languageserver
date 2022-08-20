@@ -142,10 +142,17 @@ arg_completion <- function(uri, workspace, point, token, funct, package = NULL, 
 }
 
 
-ns_function_completion <- function(ns, token, exported_only, snippet_support) {
+ns_function_completion <- function(ns, token, exported_only, include_s3_methods = TRUE, snippet_support) {
     nsname <- ns$package_name
-    functs <- ns$get_symbols(want_functs = TRUE, exported_only = exported_only)
+
+    functs <- ns$get_symbols(
+      want_functs = TRUE,
+      exported_only = exported_only,
+      include_s3_methods = include_s3_methods
+    )
+
     functs <- functs[match_with(functs, token)]
+
     if (nsname == WORKSPACE) {
         tag <- "[workspace]"
         sort_prefix <- sort_prefixes$workspace
@@ -247,8 +254,13 @@ workspace_completion <- function(workspace, token,
                 sort_prefix <- sort_prefixes$global
             }
 
-            functs_completions <- ns_function_completion(ns, token,
-                exported_only = TRUE, snippet_support = snippet_support)
+            functs_completions <- ns_function_completion(
+              ns,
+              token,
+              exported_only = TRUE,
+              include_s3_methods = token_starts_with_s3(token),
+              snippet_support = snippet_support
+            )
 
             nonfuncts <- ns$get_symbols(want_functs = FALSE, exported_only = TRUE)
             nonfuncts <- nonfuncts[match_with(nonfuncts, token)]

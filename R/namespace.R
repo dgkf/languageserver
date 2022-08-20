@@ -8,6 +8,7 @@ PackageNamespace <- R6::R6Class("PackageNamespace",
         nonfuncts = character(0),
         exports = character(0),
         exported_functs = character(0),
+        exported_functs_types = character(0),
         exported_nonfuncts = character(0),
         lazydata = character(0)
     ),
@@ -18,13 +19,21 @@ PackageNamespace <- R6::R6Class("PackageNamespace",
             self$package_name <- pkgname
             ns <- asNamespace(pkgname)
             private$objects <- sanitize_names(objects(ns, all.names = TRUE))
-            is_function <- vapply(private$objects, function(x) {
-                        is.function(get(x, envir = ns))}, logical(1L), USE.NAMES = FALSE)
+
+            is_function <- vapply(
+              private$objects,
+              function(x) {
+                is.function(get(x, envir = ns))},
+                logical(1L),
+                USE.NAMES = FALSE
+            )
+
             is_exported <- private$objects %in% sanitize_names(getNamespaceExports(ns))
             private$functs <- private$objects[is_function]
             private$nonfuncts <- private$objects[!is_function]
             private$exports <- private$objects[is_exported]
             private$exported_functs <- private$objects[is_exported & is_function]
+            private$exported_functs_types <- vapply(private$exported_functs, funct_type, character(1L))
             private$exported_nonfuncts <- private$objects[is_exported & !is_function]
             private$lazydata <- as.character(names(.getNamespaceInfo(ns, "lazydata")))
             private$documentation <- collections::dict()
@@ -46,9 +55,10 @@ PackageNamespace <- R6::R6Class("PackageNamespace",
             }
         },
 
-        get_symbols = function(want_functs = TRUE, exported_only = TRUE) {
+        get_symbols = function(want_functs = TRUE, exported_only = TRUE, include_s3_methods = TRUE) {
             if (want_functs && exported_only) {
-                private$exported_functs
+                include <- include_s3_methods | private$exported_functs_types != "S3method"
+                private$exported_functs[include]
             } else if (!want_functs && exported_only) {
                 private$exported_nonfuncts
             } else if (want_functs && !exported_only) {
@@ -211,7 +221,7 @@ GlobalEnv <- R6::R6Class("GlobalEnv",
             return(FALSE)
         },
 
-        get_symbols = function(want_functs = TRUE, exported_only = TRUE) {
+        get_symbols = function(want_functs = TRUE, exported_only = TRUE, ...) {
             symbols <- character(0)
             for (doc in self$documents$values()) {
                 if (!is.null(doc$parse_data)) {

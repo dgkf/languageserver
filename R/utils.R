@@ -737,3 +737,42 @@ range_overlap <- function(range1, range2) {
         compare_position(range2$end, range1$start) < 0 ||
         compare_position(range2$start, range1$end) > 0)
 }
+
+#' Does the current token start with a valid S3 generic
+#'
+#' @param token A character value to consider
+#'
+#' @examples
+#' token_starts_with_s3("as.character.fac")
+#' # TRUE
+#'
+#' token_starts_with_s3("as.chara")
+#' # FALSE
+#'
+#' @keywords internal
+#'
+token_starts_with_s3 <- function(token) {
+  is_atomic_or_s3 <- function(x) {
+    if (!exists(x)) return(FALSE)
+    obj <- get(x)
+    is.primitive(obj) || isS3stdGeneric(obj)
+  }
+
+  dots <- gregexpr("\\.", token)[[1]]
+  if (any(dots < 0)) return(FALSE)
+
+  substrs <- substring(token, 1, c(dots - 1, nchar(token)))
+  Position(is_atomic_or_s3, substrs, nomatch = -1) > 0
+}
+
+funct_type <- function(name, envir = parent.frame()) {
+  if (!exists(name, envir = envir)) return("unknown")
+  obj <- get(name, envir = envir)
+  if (is.primitive(obj)) {
+    "primitive"
+  } else if (tryCatch(isS3method(name, envir = envir), condition = function(c) FALSE)) {
+    "S3method"
+  } else {
+    "function"
+  }
+}
