@@ -1,12 +1,12 @@
 CodeActionKind <- list(
-    Empty = "",
-    QuickFix = "quickfix",
-    Refactor = "refactor",
-    RefactorExtract = "refactor.extract",
-    RefactorInline = "refactor.inline",
-    RefactorRewrite = "refactor.rewrite",
-    Source = "source",
-    SourceOrganizeImports = "source.organizeImports"
+  Empty = "",
+  QuickFix = "quickfix",
+  Refactor = "refactor",
+  RefactorExtract = "refactor.extract",
+  RefactorInline = "refactor.inline",
+  RefactorRewrite = "refactor.rewrite",
+  Source = "source",
+  SourceOrganizeImports = "source.organizeImports"
 )
 
 #' The response to a textDocument/codeAction Request
@@ -135,30 +135,24 @@ document_code_action_reply <- function(id, uri, workspace, document, range, cont
     Response$new(id, result = result)
 }
 
-code_action_codegrip_reshape <- function(
-    id,
-    uri,
-    workspace,
-    document,
-    range,
-    context
-) {
+code_action_codegrip_reshape <- function(id, uri, workspace, document, range, context) {
     if (!requireNamespace("codegrip", quietly = TRUE)) {
         return(NULL)
     }
 
-    info <- codegrip:::parse_info(
-        file = uri,
-        lines = document$content
+    reshape <- tryCatch(
+        codegrip:::reshape_info(
+            line = range$start$row + 1,
+            col = range$start$col + 1,
+            info = codegrip:::parse_info(
+                file = uri,
+                lines = document$content
+            )
+        ),
+        error = function(...) NULL
     )
 
-    reshape <- codegrip:::reshape_info(
-        line = range$start$row + 1,
-        col = range$start$col + 1,
-        info = info
-    )
-
-    # null if no replacement is suggested
+    # null if parse error or no replacement is suggested
     if (is.null(reshape)) {
         return(reshape)
     }
