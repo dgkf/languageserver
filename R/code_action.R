@@ -16,6 +16,12 @@ document_code_action_reply <- function(id, uri, workspace, document, range, cont
     result <- list()
     listed_linters <- character()
 
+    result <- c(
+        result,
+        code_action_codegrip_reshape(id, uri, workspace, document, range, context)
+    )
+
+    # lintr diagnostics actions
     for (item in context$diagnostics) {
         item_range <- list(
             start = document$from_lsp_position(item$range$start),
@@ -127,4 +133,53 @@ document_code_action_reply <- function(id, uri, workspace, document, range, cont
     ))
 
     Response$new(id, result = result)
+}
+
+code_action_codegrip_reshape <- function(
+    id,
+    uri,
+    workspace,
+    document,
+    range,
+    context
+) {
+    if (!requireNamespace("codegrip", quietly = TRUE)) {
+        return(NULL)
+    }
+
+    info <- codegrip:::parse_info(
+        file = uri,
+        lines = document$content
+    )
+
+    reshape <- codegrip:::reshape_info(
+        line = range$start$row + 1,
+        col = range$start$col + 1,
+        info = info
+    )
+
+    # null if no replacement is suggested
+    if (is.null(reshape)) {
+        return(reshape)
+    }
+
+    start <- document$to_lsp_position(
+        row = reshape$start[["line"]] - 1,
+        col = reshape$start[["col"]] - 1
+    )
+
+    end <- document$to_lsp_position(
+        row = reshape$end[["line"]] - 1,
+        col = reshape$end[["col"]] - 1
+    )
+
+    edit <- text_edit(range = range(start = start, end = end), reshape$reshaped)
+    changes <- list(list(edit))
+    names(changes) <- uri
+
+    list(list(
+        title = "{codegrip} reshape",
+        kind = CodeActionKind$Refactor,
+        edit = list(changes = changes)
+    ))
 }
