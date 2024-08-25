@@ -1,13 +1,4 @@
-CodeActionKind <- list(
-  Empty = "",
-  QuickFix = "quickfix",
-  Refactor = "refactor",
-  RefactorExtract = "refactor.extract",
-  RefactorInline = "refactor.inline",
-  RefactorRewrite = "refactor.rewrite",
-  Source = "source",
-  SourceOrganizeImports = "source.organizeImports"
-)
+CodeActionKind <- list(Empty = "", QuickFix = "quickfix", Refactor = "refactor", RefactorExtract = "refactor.extract", RefactorInline = "refactor.inline", RefactorRewrite = "refactor.rewrite", Source = "source", SourceOrganizeImports = "source.organizeImports")
 
 #' The response to a textDocument/codeAction Request
 #'
@@ -144,12 +135,13 @@ code_action_codegrip_reshape <- function(id, uri, workspace, document, range, co
         codegrip:::reshape_info(
             line = range$start$row + 1,
             col = range$start$col + 1,
-            info = codegrip:::parse_info(
+            info = list(
                 file = uri,
-                lines = document$content
+                lines = document$content,
+                xml = document$parse_data$xml_doc
             )
         ),
-        error = function(...) NULL
+        error = function(e) NULL
     )
 
     # null if parse error or no replacement is suggested
