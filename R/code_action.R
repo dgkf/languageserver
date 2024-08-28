@@ -145,7 +145,15 @@ document_code_action_reply <- function(
     Response$new(id, result = result)
 }
 
-code_action_codegrip_reshape <- function(id, uri, workspace, document, range, context) {
+code_action_codegrip_reshape <- function(
+    id,
+    uri,
+    workspace,
+    document,
+    range,
+    context,
+    capabilities
+) {
     if (!requireNamespace("codegrip", quietly = TRUE)) {
         return(NULL)
     }
@@ -165,12 +173,13 @@ code_action_codegrip_reshape <- function(id, uri, workspace, document, range, co
                 "R Error encountered while preparing {codegrip} reshape code action: ",
                 conditioNMessage(e)
             )
+            NULL
         }
     )
 
     # null if parse error or no replacement is suggested
     if (is.null(reshape)) {
-        return(reshape)
+        return()
     }
 
     start <- document$to_lsp_position(
