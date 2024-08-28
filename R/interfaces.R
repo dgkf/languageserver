@@ -137,11 +137,31 @@ symbol_information <- function(name, kind, location) {
 text_edit <- function(range, new_text) {
   structure(
     list(
-      range    = range,
+      range   = range,
       newText = new_text
     ),
     class = "text_edit"
   )
+}
+
+#' A snippet edit applicable to a text document
+#'
+#' @param range a [range], the part of the document to replace
+#' @param snippet a character, the text to replace. `$` characters should be
+#'   escaped unless they are intended to be used for snippet tabstops.
+#' @param annotationId a string, the identifier to use for the snippet.
+#' @noRd
+snippet_edit <- function(range, snippet, annotationId) {
+  data <- list(
+    range = range,
+    snippet = snippet
+  )
+
+  if (!missing(annotationId)) {
+    data$annotationId <- annotationId
+  }
+
+  structure(data, class = "snippet_edit")
 }
 
 #' A text document and a position inside that document

@@ -1,15 +1,32 @@
-CodeActionKind <- list(Empty = "", QuickFix = "quickfix", Refactor = "refactor", RefactorExtract = "refactor.extract", RefactorInline = "refactor.inline", RefactorRewrite = "refactor.rewrite", Source = "source", SourceOrganizeImports = "source.organizeImports")
+CodeActionKind <- list(
+    Empty = "",
+    QuickFix = "quickfix",
+    Refactor = "refactor",
+    RefactorExtract = "refactor.extract",
+    RefactorInline = "refactor.inline",
+    RefactorRewrite = "refactor.rewrite",
+    Source = "source",
+    SourceOrganizeImports = "source.organizeImports"
+)
 
 #' The response to a textDocument/codeAction Request
 #'
 #' @keywords internal
-document_code_action_reply <- function(id, uri, workspace, document, range, context) {
+document_code_action_reply <- function(
+    id,
+    uri,
+    workspace,
+    document,
+    range,
+    context,
+    capabilities
+) {
     result <- list()
     listed_linters <- character()
 
     result <- c(
         result,
-        code_action_codegrip_reshape(id, uri, workspace, document, range, context)
+        code_action_codegrip_reshape(id, uri, workspace, document, range, context, capabilities)
     )
 
     # lintr diagnostics actions
@@ -116,6 +133,8 @@ document_code_action_reply <- function(id, uri, workspace, document, range, cont
         }
     }
 
+
+
     logger$info("document_code_action_reply: ", list(
         uri = uri,
         range = range,
@@ -141,7 +160,12 @@ code_action_codegrip_reshape <- function(id, uri, workspace, document, range, co
                 xml = document$parse_data$xml_doc
             )
         ),
-        error = function(e) NULL
+        error = function(e) {
+            logger$info(
+                "R Error encountered while preparing {codegrip} reshape code action: ",
+                conditioNMessage(e)
+            )
+        }
     )
 
     # null if parse error or no replacement is suggested
@@ -159,7 +183,17 @@ code_action_codegrip_reshape <- function(id, uri, workspace, document, range, co
         col = reshape$end[["col"]] - 1
     )
 
-    edit <- text_edit(range = range(start = start, end = end), reshape$reshaped)
+    edit_range <- range(start = start, end = end)
+    edit <- if (capabilities$workspace$workspaceEdit$snippetEditSupport) {
+        snippet <- reshape$reshaped
+        head_cursor <- snippet_escape(substring(snippet, 1, cursor_pos))
+        tail_cursor <- snippet_escape(substring(snippet, cursor_pos))
+        snippet <- paste0(head_cursor, "$0", tail_cursor)
+        snippet_edit(range = edit_range, snippet)
+    } else {
+        text_edit(range = edit_range, reshape$reshaped)
+    }
+
     changes <- list(list(edit))
     names(changes) <- uri
 

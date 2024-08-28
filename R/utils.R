@@ -676,3 +676,14 @@ range_overlap <- function(range1, range2) {
         compare_position(range2$end, range1$start) < 0 ||
         compare_position(range2$start, range1$end) > 0)
 }
+
+#' Escape a block of text for use as a snippet
+#'
+#' Escapes all '$' characters within a block of text.
+#'
+#' @param text a character, the raw snippet text to be escaped.
+#'
+#' @noRd
+snippet_escape <- function(text) {
+    gsub("\\$", "\\\\$", text)
+}
