@@ -26,7 +26,8 @@ document_code_action_reply <- function(
 
     result <- c(
         result,
-        code_action_codegrip_reshape(id, uri, workspace, document, range, context, capabilities)
+        code_action_codegrip_reshape(id, uri, workspace, document, range, context, capabilities),
+        code_action_insert_roxygen_header(id, uri, workspace, document, range, context, capabilities)
     )
 
     # lintr diagnostics actions
@@ -193,7 +194,7 @@ code_action_codegrip_reshape <- function(
     )
 
     edit_range <- range(start = start, end = end)
-    edit <- if (capabilities$workspace$workspaceEdit$snippetEditSupport) {
+    edit <- if (isTRUE(capabilities$workspace$workspaceEdit$snippetEditSupport)) {
         snippet <- reshape$reshaped
         head_cursor <- snippet_escape(substring(snippet, 1, cursor_pos))
         tail_cursor <- snippet_escape(substring(snippet, cursor_pos))
@@ -212,3 +213,52 @@ code_action_codegrip_reshape <- function(
         edit = list(changes = changes)
     ))
 }
+
+code_action_insert_roxygen_header <- function(
+    id,
+    uri,
+    workspace,
+    document,
+    range,
+    context,
+    capabilities
+) {
+    doc <- document$parse_data$xml_doc
+
+    # find the node that our cursor is on
+    line <- range$start$line
+    col  <- range$start$character
+    node <- xml2::xml_find_first(doc, xpath_node_at(line, col))
+
+    # if we're in an R6 object declaration, check if we're in a location where
+    # we should insert a @field
+
+
+    # if we're in a function definition, proceed with function header
+    node_fn <- xml_find_parent_function(node)
+    if (!is.na(node_fn)) {
+        
+    }
+    
+    # sym_node <- xml_find_associated_symbol(doc, range$start)
+    # com_node <- xml_find_associated_comment(sym_node)
+
+    edit <- text_edit(
+        range = range(
+            document$to_lsp_position(0, 0),
+            document$to_lsp_position(0, 0)
+        ),
+        "test"
+    )
+
+    changes <- list(list(edit))
+    names(changes) <- uri
+
+    list(list(
+        title = "insert roxygen header",
+        kind = CodeActionKind$QuickFix,
+        edit = list(changes = changes)
+    ))
+}
+
+
